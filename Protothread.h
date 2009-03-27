@@ -105,7 +105,9 @@ public:
     // Run next part of protothread or return immediately if it's still
     // waiting. Return true if protothread is still running, false if it
     // has finished. Implement this method in your Protothread subclass.
-    virtual bool Run() = 0;
+    virtual int Run() = 0;
+    virtual ~Protothread() = 0;
+
 
 protected:
     // Used to store a protothread's position (what Dunkels calls a
@@ -120,16 +122,21 @@ protected:
     LineNumber _ptLine;
 };
 
+#define PT_WAITING 0
+#define PT_YIELDED 1
+#define PT_EXITED  2
+#define PT_ENDED   3
+
 // Declare start of protothread (use at start of Run() implementation).
 #define PT_BEGIN() bool ptYielded = true; switch (_ptLine) { case 0:
 
 // Stop protothread and end it (use at end of Run() implementation).
-#define PT_END() default: ; } Stop(); return false;
+#define PT_END() default: ; } Stop(); return PT_ENDED;
 
 // Cause protothread to wait until given condition is true.
 #define PT_WAIT_UNTIL(condition) \
     do { _ptLine = __LINE__; case __LINE__: \
-    if (!(condition)) return true; } while (0)
+    if (!(condition)) return PT_WAITING; } while (0)
 
 // Cause protothread to wait while given condition is true.
 #define PT_WAIT_WHILE(condition) PT_WAIT_UNTIL(!(condition))
@@ -142,19 +149,19 @@ protected:
     do { (child).Restart(); PT_WAIT_THREAD(child); } while (0)
 
 // Restart protothread's execution at its PT_BEGIN.
-#define PT_RESTART() do { Restart(); return true; } while (0)
+#define PT_RESTART() do { Restart(); return PT_WAITING; } while (0)
 
 // Stop and exit from protothread.
-#define PT_EXIT() do { Stop(); return false; } while (0)
+#define PT_EXIT() do { Stop(); return PT_EXITED; } while (0)
 
 // Yield protothread till next call to its Run().
 #define PT_YIELD() \
     do { ptYielded = false; _ptLine = __LINE__; case __LINE__: \
-    if (!ptYielded) return true; } while (0)
+    if (!ptYielded) return PT_YIELDED; } while (0)
 
 // Yield protothread until given condition is true.
 #define PT_YIELD_UNTIL(condition) \
     do { ptYielded = false; _ptLine = __LINE__; case __LINE__: \
-    if (!ptYielded || !(condition)) return true; } while (0)
+    if (!ptYielded || !(condition)) return PT_YIELDED; } while (0)
 
 #endif // __PROTOTHREAD_H__

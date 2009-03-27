@@ -1,0 +1,3 @@
+Add PT_YIELDED PT_WAITING PT_EXITED PT_ENDED.
+
+Source http://blogstatic.micropledge.com/2008/07/Protothread.h.txt
